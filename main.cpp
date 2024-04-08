@@ -1,5 +1,8 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <string>
+#include <iomanip> // for std::setprecision
+#include <sstream> // for std::ostringstream
 
 struct Animation 
 {
@@ -40,16 +43,23 @@ struct Animation
 struct Player 
 {
     sf::Sprite sprite;
-    int direction = 1;
+    int health = 10000;
+    
     // Run Animation
     Animation runAnimation;
+    int direction = 1;
+    float velocityX = 0.0f;
+    float velocityY = 0.2f;
 
     // Jump Animation
     Animation jumpAnimation;
     bool isJumping = false;
-    float jumpHeight = 100.0f;
-    float velocityX = 0.0f;
-    float velocityY = 0.2f;
+
+    // Boxing Animation
+    Animation boxAnimation;
+
+    // Shooting Animaion
+    bool isWeaponed = false;
 
     void setRun(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
     {
@@ -67,6 +77,15 @@ struct Player
         jumpAnimation.frameNums = frameNums;
         sprite.setTexture(texture);
         sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
+    }
+
+    void setBox(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
+    {
+        boxAnimation.texture = texture;
+        boxAnimation.textSize = textSize;
+        boxAnimation.frameNums = frameNums;
+        sprite.setTexture(texture);
+        sprite.setTextureRect(boxAnimation.getCurrentFrameRect(direction));
     }
 
     void moveRight(float deltaTime)
@@ -96,34 +115,72 @@ struct Player
        velocityY = -0.2f;
        isJumping = true;
        jumpAnimation.update(deltaTime);
-       sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
+    }
+
+    void box(float deltaTime, Player& other)
+    {
+        boxAnimation.update(deltaTime);
+        sprite.setTextureRect(boxAnimation.getCurrentFrameRect(direction));
+        if (sprite.getGlobalBounds().intersects(other.sprite.getGlobalBounds()))
+        {
+            other.health -= 1;
+        }
+    }
+
+    void shoot()
+    {
+
     }
 };
 
 int main()
 {
     // create the window
-    sf::RenderWindow window(sf::VideoMode(700, 500), "My window");
+    const int winWidth = 700, winHeight = 500;
+    sf::RenderWindow window(sf::VideoMode(winWidth, winHeight), "My window");
     window.clear(sf::Color(150, 150, 150));
 
-    Player player1;
     // Running Texture
     sf::Texture runningText;
     runningText.loadFromFile("./assets/running.png");
     sf::Vector2u runTextSize = runningText.getSize();
-    player1.setRun(runningText, runTextSize, 9);
-
     // Jumping Texture
     sf::Texture jumpingText;
     jumpingText.loadFromFile("./assets/jumping.png");
     sf::Vector2u jumpTextSize = jumpingText.getSize();
+    // Box Texture
+    sf::Texture boxingText;
+    boxingText.loadFromFile("./assets/boxing.png");
+    sf::Vector2u boxTextSize = boxingText.getSize();
 
-    sf::RectangleShape rect1(sf::Vector2f(500, 50));
-    rect1.setPosition(0, 400);
-    rect1.setFillColor(sf::Color::White);
+    Player player1, player2;
+    player1.setRun(runningText, runTextSize, 9);
+    player1.sprite.setPosition(50, 50);
+
+    player2.setRun(runningText, runTextSize, 9);
+    player2.direction = -1;
+    player2.sprite.setPosition(winWidth - 100, 50);
+
+    int score = 0;
+    sf::Font font;
+    font.loadFromFile("./assets/font.ttf");
+    sf::Text text;
+    text.setFont(font);
+    text.setCharacterSize(50);
+    text.setPosition(winWidth / 2 - 100, 10);
+
+    sf::RectangleShape ground[2];
+    int gap = 40;
+    ground[0].setSize(sf::Vector2f(winWidth / 2 - gap, 50));
+    ground[0].setPosition(0, 400);
+    ground[0].setFillColor(sf::Color::White);
+    ground[1].setSize(sf::Vector2f(winWidth / 2 - gap, 50));
+    ground[1].setPosition(winWidth / 2 + gap, 400);
+    ground[1].setFillColor(sf::Color::White);
 
     sf::Clock clock;
     float deltaTime;
+    
 
     // Game Loop
     while (window.isOpen())
@@ -137,7 +194,14 @@ int main()
                 window.close();
         }
 
-        // Keyboard Controls
+        // Keyboard Controls:
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+        {
+            window.close();
+            std::cout << deltaTime << '\n';
+        }
+
+        // Player 1
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
         {
             player1.moveRight(deltaTime);
@@ -151,7 +215,8 @@ int main()
             player1.velocityX = 0.0f;
         }
 
-        if (player1.sprite.getGlobalBounds().intersects(rect1.getGlobalBounds()))
+
+        if (player1.sprite.getGlobalBounds().intersects(ground[0].getGlobalBounds()) || player1.sprite.getGlobalBounds().intersects(ground[1].getGlobalBounds()))
         {
             player1.isJumping = false;
             player1.velocityY = 0.0f;
@@ -171,21 +236,54 @@ int main()
             player1.velocityY = 0.1f;
         }
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
         {
-            window.close();
+            if (player1.isWeaponed)
+            {
+                player1.shoot();
+            }
+            else
+            {
+                player1.setBox(boxingText, boxTextSize, 7);
+                player1.box(deltaTime, player2);
+            }
         }
+
+        // Player 2
+        if (player2.sprite.getGlobalBounds().intersects(ground[0].getGlobalBounds()) || player2.sprite.getGlobalBounds().intersects(ground[1].getGlobalBounds()))
+        {
+            player2.isJumping = false;
+            player2.velocityY = 0.0f;
+            player2.setRun(runningText, runTextSize, 9);
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+            {
+                player2.setJump(jumpingText, jumpTextSize, 1);
+                player2.jump(deltaTime);
+            }
+        }
+        else if (player2.isJumping)
+        {
+            player2.velocityY += 0.98f * deltaTime;
+        }
+        else 
+        {
+            player2.velocityY = 0.1f;
+        }
+
 
         window.clear(sf::Color(150, 150, 150));
 
         // draw everything here...
-        window.draw(rect1);
+        window.draw(ground[0]);
+        window.draw(ground[1]);
         window.draw(player1.sprite);
+        window.draw(player2.sprite);
+        text.setString("HP: " + std::to_string(player2.health));
+        window.draw(text);
 
         player1.sprite.move(player1.velocityX, player1.velocityY);
+        player2.sprite.move(player2.velocityX, player2.velocityY);
         window.display();
     }
-
-    return 0;
 }
 
