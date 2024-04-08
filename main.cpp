@@ -1,8 +1,6 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <string>
-#include <iomanip> // for std::setprecision
-#include <sstream> // for std::ostringstream
 
 struct Animation 
 {
@@ -37,6 +35,25 @@ struct Animation
         }
         int step = direction * (textSize.x / frameNums);
         return sf::IntRect(left, top, step, textSize.y);
+    }
+};
+
+struct Weopon 
+{
+    int damage;
+    float timeOfResponing;
+    sf::Texture& texture;
+    sf::Sprite sprite;
+    bool isRender = false;
+    float velocityY = 0.1f;
+    int posX;
+
+    void render(int winWidth)
+    {
+        winWidth -= texture.getSize().x;
+        posX = rand() % winWidth;
+        sprite.setTexture(texture);
+        sprite.setPosition(posX, 10);
     }
 };
 
@@ -178,9 +195,13 @@ int main()
     ground[1].setPosition(winWidth / 2 + gap, 400);
     ground[1].setFillColor(sf::Color::White);
 
-    sf::Clock clock;
-    float deltaTime;
+    sf::Texture gunText;
+    gunText.loadFromFile("./assets/weopon.png");
+    Weopon gun = {1, 2.0f, gunText};
+    sf::Sprite weopon; weopon.setTexture(gunText);
     
+    float deltaTime;
+    sf::Clock clock, timer;
 
     // Game Loop
     while (window.isOpen())
@@ -198,7 +219,6 @@ int main()
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
         {
             window.close();
-            std::cout << deltaTime << '\n';
         }
 
         // Player 1
@@ -270,7 +290,15 @@ int main()
             player2.velocityY = 0.1f;
         }
 
-
+        // Weopon
+        if (gun.sprite.getGlobalBounds().intersects(ground[0].getGlobalBounds()) || gun.sprite.getGlobalBounds().intersects(ground[1].getGlobalBounds()))
+        {
+            gun.velocityY = 0.0f;
+        }
+        else 
+        {
+            gun.velocityY = 0.1f;
+        }
         window.clear(sf::Color(150, 150, 150));
 
         // draw everything here...
@@ -280,6 +308,18 @@ int main()
         window.draw(player2.sprite);
         text.setString("HP: " + std::to_string(player2.health));
         window.draw(text);
+
+        if (gun.timeOfResponing <= timer.getElapsedTime().asSeconds())
+        {
+            gun.isRender = true;
+            gun.render(winWidth);
+            timer.restart();
+        }
+        else if (gun.isRender)
+        { 
+            window.draw(gun.sprite);
+            gun.sprite.move(0, gun.velocityY);
+        }
 
         player1.sprite.move(player1.velocityX, player1.velocityY);
         player2.sprite.move(player2.velocityX, player2.velocityY);
