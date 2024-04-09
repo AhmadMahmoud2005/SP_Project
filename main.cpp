@@ -197,7 +197,7 @@ int main()
 
     sf::Texture gunText;
     gunText.loadFromFile("./assets/weopon.png");
-    Weopon gun = {1, 2.0f, gunText};
+    Weopon gun = {1, 4.0f, gunText};
     sf::Sprite weopon; weopon.setTexture(gunText);
     
     float deltaTime;
