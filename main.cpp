@@ -36,7 +36,7 @@ struct Animation
             left = currentFrame * (textSize.x / frameNums);
         }
         int step = direction * (textSize.x / frameNums);
-        return sf::IntRect(left, top, step, textSize.y / 2);
+        return sf::IntRect(left, top, step, 120);
     }
 };
 
@@ -98,14 +98,14 @@ struct Player
         sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
     }
 
-    void setBox(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
-    {
-        boxAnimation.texture = texture;
-        boxAnimation.textSize = textSize;
-        boxAnimation.frameNums = frameNums;
-        sprite.setTexture(texture);
-        sprite.setTextureRect(boxAnimation.getCurrentFrameRect(direction));
-    }
+    // void setBox(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
+    // {
+    //     boxAnimation.texture = texture;
+    //     boxAnimation.textSize = textSize;
+    //     boxAnimation.frameNums = frameNums;
+    //     sprite.setTexture(texture);
+    //     sprite.setTextureRect(boxAnimation.getCurrentFrameRect(direction));
+    // }
 
     void moveRight(float deltaTime)
     {
@@ -133,7 +133,11 @@ struct Player
     {
        velocityY = -5.0f;
        isJumping = true;
-       jumpAnimation.update(deltaTime);
+       for (int i = 0; i < 8; i++)
+       {
+            jumpAnimation.update(deltaTime);
+            sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
+       }
     }
 
     void box(float deltaTime, Player& other)
@@ -180,7 +184,7 @@ int main()
     
     // Background
     sf::Texture ballBackground;
-    ballBackground.loadFromFile("./backgrounds/ballback.png");
+    ballBackground.loadFromFile("./backgrounds/ballfore.png");
     sf::Sprite ballBack;
     ballBack.setTexture(ballBackground);
     float scaleX = window.getSize().x / (float)ballBackground.getSize().x;
@@ -189,22 +193,18 @@ int main()
 
     // Running Texture
     sf::Texture runningText;
-    runningText.loadFromFile("./sprites/pistol.png");
+    runningText.loadFromFile("./sprites/walking.png");
     sf::Vector2u runTextSize = runningText.getSize();
     // Jumping Texture
     sf::Texture jumpingText;
-    jumpingText.loadFromFile("./assets/jumping.png");
+    jumpingText.loadFromFile("./sprites/jump.png");
     sf::Vector2u jumpTextSize = jumpingText.getSize();
-    // Box Texture
-    sf::Texture boxingText;
-    boxingText.loadFromFile("./assets/boxing.png");
-    sf::Vector2u boxTextSize = boxingText.getSize();
 
     Player player1, player2;
-    player1.setRun(runningText, runTextSize, 9);
+    player1.setRun(runningText, runTextSize, 8);
     player1.sprite.setPosition(50, 50);
 
-    player2.setRun(runningText, runTextSize, 9);
+    player2.setRun(runningText, runTextSize, 8);
     player2.direction = -1;
     player2.sprite.setPosition(winWidth - 100, 50);
 
@@ -272,10 +272,10 @@ int main()
         {
             player1.isJumping = false;
             player1.velocityY = 0.0f;
-            player1.setRun(runningText, runTextSize, 9);
+            player1.setRun(runningText, runTextSize, 8);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
             {
-                player1.setRun(runningText, runTextSize, 9);
+                player1.setJump(jumpingText, jumpTextSize, 8);
                 player1.jump(deltaTime);
             }
         }
