@@ -18,11 +18,11 @@ struct Player{
 	Clock clock;
 
 	int health = 10000;
-
 	int droptype = -1;
 
 	vector<Bullet>bullets;
 	bool canshoot = false;
+	bool grounded = false;
 	float shootcooldown;
 	int index = -1;
 
@@ -119,7 +119,7 @@ struct help {
 
 vector<help>dropbag;
 Sprite drops[4]; // 0 pistol , 1 rifle , 2 mini , 3 RPG
-Texture playerTecture[5] , dropsTexture[8];
+Texture playerTecture[6] , dropsTexture[8];
 int indexdrop, indexblock;
 
 
@@ -135,7 +135,6 @@ void cheakdrop(Player& player);
 void bulletcooldown(Player& player);
 void movebullets(vector<Bullet>& bullets);
 
-
 int main()
 {
     RenderWindow window(VideoMode(1000, 1000), "game");
@@ -149,10 +148,9 @@ int main()
 	player1.sprite.setOrigin(125.375 / 2.00, 124.5 / 2.00);
 
     Texture bg , jump ;
-    bg.loadFromFile("background.png");
-	jump.loadFromFile("jump.png");
+    bg.loadFromFile("./backgrounds/factoryback.png");
+	jump.loadFromFile("./sprites/jump.png");
    
-
     RectangleShape background , grounds[3] ;
     background.setSize(Vector2f(1000, 1000));
     background.setPosition(0, 0);
@@ -160,23 +158,24 @@ int main()
 
 	grounds[0].setSize(Vector2f(170, 800));
 	grounds[0].setPosition(0, 420);
-	grounds[0].setFillColor(Color::Transparent);
+	grounds[0].setFillColor(Color::White);
 
 	grounds[1].setSize(Vector2f(270, 100));
 	grounds[1].setPosition(350, 425);
-	grounds[1].setFillColor(Color::Transparent);
+	grounds[1].setFillColor(Color::White);
 
 	grounds[2].setSize(Vector2f(170, 800));
 	grounds[2].setPosition(830, 420);
-	grounds[2].setFillColor(Color::Transparent);
+	grounds[2].setFillColor(Color::White);
 
 	setplayertecture();
 	setdrops();
 
 	animation(player1);
 
-	bool jumped=false , RPGpicked=false , grounded=false ;
-	int a=0 , v=0 , delay=0 , ctrj = 0;
+	bool jumped=false , RPGpicked=false;
+	int a=0, delay=0 , ctrj = 0;
+	float vx=0, vy=0;
 	int  last_key_pressed=1;
 
 	while (window.isOpen())
@@ -185,11 +184,10 @@ int main()
 		dropfalling();
 		dropcollision(player1);
 
-		if (grounded==false) {
-			v += 0.01 * a;
+		if (!player1.grounded) {
+			vy += 0.01 * a;
 			a++;
 		}
-		player1.sprite.move(0, v);
 
 		Event evnt;
 		while (window.pollEvent(evnt)) {
@@ -198,22 +196,25 @@ int main()
 			}
 		}
 		if (Keyboard::isKeyPressed(Keyboard::Right)) {
-			player1.sprite.move(5, 0);
+			vx = 5.0f;
 			player1.sprite.setScale(0.7, 0.7);
 			last_key_pressed = 1;
 			if (jumped == false) {
 				animation(player1);
 			}
-
 		}
-		if (Keyboard::isKeyPressed(Keyboard::Left)) {
-			player1.sprite.move(-5, 0);
+		else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+			vx = -5.0f;
 			player1.sprite.setScale(-0.7, 0.7);
 			last_key_pressed = 2;
 			if (jumped == false) {
 				animation(player1);
 			}
 		}
+		else {
+			vx = 0.0f;
+		}
+
 		if (player1.index >= 0 && Keyboard::isKeyPressed(Keyboard::A) && player1.canshoot) {
 			player1.bullets[player1.index].bulletsprite.setPosition(player1.sprite.getPosition().x + 10, player1.sprite.getPosition().y - 40);
 			player1.shootcooldown = player1.bullets[player1.index].cooldownuse;
@@ -221,20 +222,25 @@ int main()
 			player1.index--;
 			player1.canshoot = false;
 		}
-		cheakdrop(player1);
-		bulletcooldown(player1);
-		movebullets(player1.bullets);
 
 		if (player1.sprite.getGlobalBounds().intersects(grounds[0].getGlobalBounds())||
 			player1.sprite.getGlobalBounds().intersects(grounds[1].getGlobalBounds())||
 			player1.sprite.getGlobalBounds().intersects(grounds[2].getGlobalBounds())){
-			grounded = true;
-			v = 0;
+			player1.grounded = true;
+			vy = 0;
 			a = 0;
+			if (Keyboard::isKeyPressed(Keyboard::Up))
+			{
+				vy = -5.0f;
+			}
 		}
 		else {
-			grounded = false;
+			player1.grounded = false;
+			animation(player1);
 		}
+		cheakdrop(player1);
+		bulletcooldown(player1);
+		movebullets(player1.bullets);
 
         window.clear();
 
@@ -249,18 +255,19 @@ int main()
 			window.draw(player1.bullets[i].bulletsprite);
 		}
 		window.draw(player1.sprite);
-
+		player1.sprite.move(vx, vy);
         window.display();
     }
     return 0;
 }
 
 void setplayertecture() {
-	playerTecture[0].loadFromFile("pistol.png");
-	playerTecture[1].loadFromFile("AK.png");
-	playerTecture[2].loadFromFile("MiniGun.png");
-	playerTecture[3].loadFromFile("RPG.png");
-	playerTecture[4].loadFromFile("walking.png");
+	playerTecture[0].loadFromFile("./sprites/pistol.png");
+	playerTecture[1].loadFromFile("./sprites/AK.png");
+	playerTecture[2].loadFromFile("./sprites/MiniGun.png");
+	playerTecture[3].loadFromFile("./sprites/RPG.png");
+	playerTecture[4].loadFromFile("./sprites/walking.png");
+	playerTecture[5].loadFromFile("./sprites/jump.png");
 }
 void animation(Player& player) {
 	float time = player.clock.getElapsedTime().asMicroseconds();
@@ -278,11 +285,11 @@ void animation(Player& player) {
 }
 
 void setdrops() {
-	dropsTexture[0].loadFromFile("pistolW.png");
-	dropsTexture[1].loadFromFile("AKW.png");
-	dropsTexture[2].loadFromFile("MiniW.png");
-	dropsTexture[3].loadFromFile("RPGW.png");
-	dropsTexture[4].loadFromFile("pistol bullet.png");
+	dropsTexture[0].loadFromFile("./sprites/pistolW.png");
+	dropsTexture[1].loadFromFile("./sprites/AKW.png");
+	dropsTexture[2].loadFromFile("./sprites/MiniW.png");
+	dropsTexture[3].loadFromFile("./sprites/RPGW.png");
+	dropsTexture[4].loadFromFile("./sprites/pistol bullet.png");
 	for (int i = 0; i < 4; i++) {
 		drops[i].setTexture(dropsTexture[i]);
 	}
@@ -323,11 +330,13 @@ void dropcollision(Player& player) {
 		}
 	}
 }
-
-
 void cheakdrop(Player& player) { 
 	// 0 pistol , 1 AK , 2 mini , 3 RPG
 	if (player.droptype == -1) {
+		// if (player.grounded)
+		// 	player.playertecture = 4;
+		// else
+		// 	player.playertecture = 5;
 		return;
 	}
 	else {

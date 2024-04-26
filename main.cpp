@@ -98,15 +98,6 @@ struct Player
         sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
     }
 
-    // void setBox(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
-    // {
-    //     boxAnimation.texture = texture;
-    //     boxAnimation.textSize = textSize;
-    //     boxAnimation.frameNums = frameNums;
-    //     sprite.setTexture(texture);
-    //     sprite.setTextureRect(boxAnimation.getCurrentFrameRect(direction));
-    // }
-
     void moveRight(float deltaTime)
     {
         direction = 1;
@@ -131,13 +122,10 @@ struct Player
 
     void jump(float deltaTime)
     {
-       velocityY = -5.0f;
-       isJumping = true;
-       for (int i = 0; i < 8; i++)
-       {
-            jumpAnimation.update(deltaTime);
-            sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
-       }
+       
+    //    isJumping = true;
+       jumpAnimation.update(deltaTime);
+       sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
     }
 
     void box(float deltaTime, Player& other)
@@ -192,19 +180,22 @@ int main()
     ballBack.setScale(scaleX, scaleY);
 
     // Running Texture
+    sf::Texture runningBlueText;
+    runningBlueText.loadFromFile("./sprites/walking blue.png");
+    sf::Vector2u runTextSize = runningBlueText.getSize();
     sf::Texture runningText;
     runningText.loadFromFile("./sprites/walking.png");
-    sf::Vector2u runTextSize = runningText.getSize();
     // Jumping Texture
+    sf::Texture jumpingBlueText;
+    jumpingBlueText.loadFromFile("./sprites/jump blue.png");
+    sf::Vector2u jumpTextSize = jumpingBlueText.getSize();
     sf::Texture jumpingText;
     jumpingText.loadFromFile("./sprites/jump.png");
-    sf::Vector2u jumpTextSize = jumpingText.getSize();
 
     Player player1, player2;
     player1.setRun(runningText, runTextSize, 8);
     player1.sprite.setPosition(50, 50);
-
-    player2.setRun(runningText, runTextSize, 8);
+    player2.setRun(runningBlueText, runTextSize, 8);
     player2.direction = -1;
     player2.sprite.setPosition(winWidth - 100, 50);
 
@@ -275,13 +266,15 @@ int main()
             player1.setRun(runningText, runTextSize, 8);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
             {
-                player1.setJump(jumpingText, jumpTextSize, 8);
-                player1.jump(deltaTime);
+                player1.isJumping = true;
+                player1.velocityY = -5.0f;  
             }
         }
         else if (player1.isJumping)
         {
-            player1.velocityY += 10.0f * deltaTime;
+            player1.setJump(jumpingText, jumpTextSize, 8);
+            player1.jump(0.009);
+            player1.velocityY += 11.0f * deltaTime;
         }
         else 
         {
@@ -296,7 +289,7 @@ int main()
             }
             else
             {
-                player1.setRun(runningText, runTextSize, 9);
+                player1.setRun(runningText, runTextSize, 8);
                 // player1.box(deltaTime, player2);
                 damage = true ;
                 health_points = health_points - 1;  
@@ -305,24 +298,39 @@ int main()
         }
 
         // Player 2
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        {
+            player2.moveRight(deltaTime);
+        }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        {
+            player2.moveLeft(deltaTime);
+        }
+        else 
+        {
+            player2.velocityX = 0.0f;
+        }
+
         if (player2.sprite.getGlobalBounds().intersects(ground[0].getGlobalBounds()) || player2.sprite.getGlobalBounds().intersects(ground[1].getGlobalBounds()))
         {
             player2.isJumping = false;
             player2.velocityY = 0.0f;
-            player2.setRun(runningText, runTextSize, 9);
+            player2.setRun(runningBlueText, runTextSize, 8);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
             {
-                player2.setJump(jumpingText, jumpTextSize, 1);
-                player2.jump(deltaTime);
+                player2.isJumping = true;
+                player2.velocityY = -5.0f;  
             }
         }
         else if (player2.isJumping)
         {
-            player2.velocityY += 0.98f * deltaTime;
+            player2.setJump(jumpingBlueText, jumpTextSize, 8);
+            player2.jump(0.009);
+            player2.velocityY += 11.0f * deltaTime;
         }
         else 
         {
-            player2.velocityY = 5.0f;
+            player2.velocityY = 10.0f;
         }
 
         window.clear(Color::Transparent);
