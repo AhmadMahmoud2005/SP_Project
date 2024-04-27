@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include "menu.h"
 #include<iostream>
 using namespace std;
 using namespace sf;
@@ -25,90 +26,8 @@ struct Player{
 	bool grounded = false;
 	float shootcooldown;
 	int index = -1;
-
-	// Run Animation
-	/*Animation runAnimation;
-	int direction = 1;
-	float velocityX = 0.0f;
-	float velocityY = 6.0f;
-	*/
-
-	// Jump Animation
-	/*Animation jumpAnimation;
-	bool isJumping = false;
-	*/
-
-	// Shooting Animaion
-	bool isWeaponed = false;
-
-	/*void setRun(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
-	{
-		runAnimation.texture = texture;
-		runAnimation.textSize = textSize;
-		runAnimation.frameNums = frameNums;
-		sprite.setTexture(texture);
-		sprite.setTextureRect(runAnimation.getCurrentFrameRect(direction));
-	}
-	*/
-
-	/*void setJump(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
-	{
-		jumpAnimation.texture = texture;
-		jumpAnimation.textSize = textSize;
-		jumpAnimation.frameNums = frameNums;
-		sprite.setTexture(texture);
-		sprite.setTextureRect(jumpAnimation.getCurrentFrameRect(direction));
-	}
-	*/
-
-	/*void setBox(sf::Texture& texture, sf::Vector2u& textSize, int frameNums)
-	{
-		boxAnimation.texture = texture;
-		boxAnimation.textSize = textSize;
-		boxAnimation.frameNums = frameNums;
-		sprite.setTexture(texture);
-		sprite.setTextureRect(boxAnimation.getCurrentFrameRect(direction));
-	}
-	*/
-
-	/*void moveRight(float deltaTime)
-	{
-		direction = 1;
-		if (!isJumping)
-		{
-			runAnimation.update(deltaTime);
-			sprite.setTextureRect(runAnimation.getCurrentFrameRect(direction));
-		}
-		velocityX = 5.0f;
-	}*/
-
-	/*void moveLeft(float deltaTime)
-	{
-		direction = -1;
-		if (!isJumping)
-		{
-			runAnimation.update(deltaTime);
-			sprite.setTextureRect(runAnimation.getCurrentFrameRect(direction));
-		}
-		velocityX = -5.0f;
-	}*/
-
-	/*void jump(float deltaTime)
-	{
-		velocityY = -5.0f;
-		isJumping = true;
-		jumpAnimation.update(deltaTime);
-	}*/
-
-	/*void box(float deltaTime, Player& other)
-	{
-		boxAnimation.update(deltaTime);
-		sprite.setTextureRect(boxAnimation.getCurrentFrameRect(direction));
-		if (sprite.getGlobalBounds().intersects(other.sprite.getGlobalBounds()))
-		{
-			other.health -= 1;
-		}
-	}*/
+	
+	bool isWeaponed = false; // Shooting Animaion
 };
 struct help {
     Sprite droptype; //drop
@@ -141,20 +60,31 @@ int main()
     window.setFramerateLimit(60);
 
 	Clock timeradd, timerdelete;
+	menu m(1000, 1000);
 
 	Player player1;
 	player1.sprite.setPosition(50, 100);
 	player1.sprite.setScale(0.7, 0.7);
 	player1.sprite.setOrigin(125.375 / 2.00, 124.5 / 2.00);
 
-    Texture bg , jump ;
-    bg.loadFromFile("./backgrounds/factoryback.png");
+    Texture bg[4], jump, menuBg;
+    bg[0].loadFromFile("./backgrounds/factoryback.png");
+    bg[1].loadFromFile("./backgrounds/ballback.png");
+    bg[2].loadFromFile("./backgrounds/ballfore.png");
+    bg[3].loadFromFile("./backgrounds/woods.png");
+    menuBg.loadFromFile("./backgrounds/wood.png");
 	jump.loadFromFile("./sprites/jump.png");
    
-    RectangleShape background , grounds[3] ;
-    background.setSize(Vector2f(1000, 1000));
-    background.setPosition(0, 0);
-    background.setTexture(&bg);
+    RectangleShape backgrounds[4], menuBackground, grounds[3];
+	for (int i = 0; i < 4; i++)
+	{
+		backgrounds[i].setSize(Vector2f(1000, 1000));
+		backgrounds[i].setPosition(0, 0);
+    	backgrounds[i].setTexture(&bg[i]);
+	}
+    menuBackground.setSize(Vector2f(1000, 1000));
+    menuBackground.setPosition(0, 0);
+    menuBackground.setTexture(&menuBg);
 
 	grounds[0].setSize(Vector2f(170, 800));
 	grounds[0].setPosition(0, 420);
@@ -176,7 +106,9 @@ int main()
 	bool jumped=false , RPGpicked=false;
 	int a=0, delay=0 , ctrj = 0;
 	float vx=0, vy=0;
-	int  last_key_pressed=1;
+	int last_key_pressed=1;
+	bool inMainMenu = true, inMapMenu = false;
+	int selectedMap = 0;
 
 	while (window.isOpen())
 	{
@@ -184,79 +116,119 @@ int main()
 		dropfalling();
 		dropcollision(player1);
 
-		if (!player1.grounded) {
-			vy += 0.01 * a;
-			a++;
-		}
-
 		Event evnt;
 		while (window.pollEvent(evnt)) {
 			if (evnt.type == Event::Closed) {
 				window.close();
 			}
-		}
-		if (Keyboard::isKeyPressed(Keyboard::Right)) {
-			vx = 5.0f;
-			player1.sprite.setScale(0.7, 0.7);
-			last_key_pressed = 1;
-			if (jumped == false) {
-				animation(player1);
-			}
-		}
-		else if (Keyboard::isKeyPressed(Keyboard::Left)) {
-			vx = -5.0f;
-			player1.sprite.setScale(-0.7, 0.7);
-			last_key_pressed = 2;
-			if (jumped == false) {
-				animation(player1);
-			}
-		}
-		else {
-			vx = 0.0f;
-		}
-
-		if (player1.index >= 0 && Keyboard::isKeyPressed(Keyboard::A) && player1.canshoot) {
-			player1.bullets[player1.index].bulletsprite.setPosition(player1.sprite.getPosition().x + 10, player1.sprite.getPosition().y - 40);
-			player1.shootcooldown = player1.bullets[player1.index].cooldownuse;
-			player1.bullets[player1.index].moveto = last_key_pressed;
-			player1.index--;
-			player1.canshoot = false;
-		}
-
-		if (player1.sprite.getGlobalBounds().intersects(grounds[0].getGlobalBounds())||
-			player1.sprite.getGlobalBounds().intersects(grounds[1].getGlobalBounds())||
-			player1.sprite.getGlobalBounds().intersects(grounds[2].getGlobalBounds())){
-			player1.grounded = true;
-			vy = 0;
-			a = 0;
-			if (Keyboard::isKeyPressed(Keyboard::Up))
+			if (evnt.type == Event::KeyPressed)
 			{
-				vy = -5.0f;
+				if (evnt.key.code == Keyboard::Escape)
+					window.close();
 			}
 		}
-		else {
-			player1.grounded = false;
-			animation(player1);
+		
+		window.clear();
+		if (inMainMenu)
+		{
+			window.draw(menuBackground);
+			m.draw(window);
+			if (Keyboard::isKeyPressed(Keyboard::Up))
+				m.moveup();
+			else if (Keyboard::isKeyPressed(Keyboard::Down))
+				m.movedown();
+			else if (Keyboard::isKeyPressed(Keyboard::Enter))
+			{
+				if (m.getselected() == 0)
+					inMainMenu = false;
+				else if (m.getselected() == 1)
+				{
+					inMainMenu = false;
+					inMapMenu = true;
+				}
+				else if (m.getselected() == 2)
+					window.close();
+			}
 		}
-		cheakdrop(player1);
-		bulletcooldown(player1);
-		movebullets(player1.bullets);
+		else if (inMapMenu)
+		{
+			window.draw(menuBackground);
+			for (int i = 0; i < 4; i++)
+			{
+				backgrounds[i].setSize(Vector2f(200.0f, 200.0f));
+				backgrounds[i].setPosition(100 + 200 * (i), 300);
+				window.draw(backgrounds[i]);
+			}
+		}
+		else
+		{
+			if (!player1.grounded) {
+				vy += 0.01 * a;
+				a++;
+			}
 
-        window.clear();
+			if (Keyboard::isKeyPressed(Keyboard::Right)) {
+				vx = 5.0f;
+				player1.sprite.setScale(0.7, 0.7);
+				last_key_pressed = 1;
+				if (jumped == false) {
+					animation(player1);
+				}
+			}
+			else if (Keyboard::isKeyPressed(Keyboard::Left)) {
+				vx = -5.0f;
+				player1.sprite.setScale(-0.7, 0.7);
+				last_key_pressed = 2;
+				if (jumped == false) {
+					animation(player1);
+				}
+			}
+			else {
+				vx = 0.0f;
+			}
 
-        window.draw(background);
-		for (int i = 0; i < 3; i++) {
-			window.draw(grounds[i]);
+			if (player1.index >= 0 && Keyboard::isKeyPressed(Keyboard::A) && player1.canshoot) {
+				player1.bullets[player1.index].bulletsprite.setPosition(player1.sprite.getPosition().x + 10, player1.sprite.getPosition().y - 40);
+				player1.shootcooldown = player1.bullets[player1.index].cooldownuse;
+				player1.bullets[player1.index].moveto = last_key_pressed;
+				player1.index--;
+				player1.canshoot = false;
+			}
+
+			if (player1.sprite.getGlobalBounds().intersects(grounds[0].getGlobalBounds())||
+				player1.sprite.getGlobalBounds().intersects(grounds[1].getGlobalBounds())||
+				player1.sprite.getGlobalBounds().intersects(grounds[2].getGlobalBounds())){
+				player1.grounded = true;
+				vy = 0;
+				a = 0;
+				if (Keyboard::isKeyPressed(Keyboard::Up))
+				{
+					vy = -5.0f;
+				}
+			}
+			else {
+				player1.grounded = false;
+				animation(player1);
+			}
+			cheakdrop(player1);
+			bulletcooldown(player1);
+			movebullets(player1.bullets);
+
+			window.draw(backgrounds[selectedMap]);
+			for (int i = 0; i < 3; i++) {
+				window.draw(grounds[i]);
+			}
+			for (int i = 0; i < dropbag.size(); i++) {
+				window.draw(dropbag[i].droptype);
+			}
+			for (int i = 0; i < player1.bullets.size(); i++) {
+				window.draw(player1.bullets[i].bulletsprite);
+			}
+			window.draw(player1.sprite);
+			player1.sprite.move(vx, vy);
 		}
-		for (int i = 0; i < dropbag.size(); i++) {
-			window.draw(dropbag[i].droptype);
-		}
-		for (int i = 0; i < player1.bullets.size(); i++) {
-			window.draw(player1.bullets[i].bulletsprite);
-		}
-		window.draw(player1.sprite);
-		player1.sprite.move(vx, vy);
-        window.display();
+
+		window.display();
     }
     return 0;
 }
@@ -283,7 +255,6 @@ void animation(Player& player) {
 	player.sprite.setTexture(playerTecture[player.playertecture]);
 	player.sprite.setTextureRect(IntRect((int)player.currentframe * player.spritelength / 8.00, 0, player.spritelength / 8.00, player.spriteheight / 2.00));
 }
-
 void setdrops() {
 	dropsTexture[0].loadFromFile("./sprites/pistolW.png");
 	dropsTexture[1].loadFromFile("./sprites/AKW.png");
