@@ -556,7 +556,13 @@ bool checkcollide(Player& player, RectangleShape blocks[],int levelblocks ) {
 	bool collide = false;
 	for (int i = 0; i < levelblocks; i++) {
 		if (player.sprite.getGlobalBounds().intersects(blocks[i].getGlobalBounds())) {
-			collide = true;
+	if (player.sprite.getGlobalBounds().top < blocks[i].getGlobalBounds().top) {
+		collide = true;
+	}
+	else if (player.sprite.getGlobalBounds().top+player.sprite.getGlobalBounds().height<blocks[i].getGlobalBounds().top+ blocks[i].getGlobalBounds().height)
+	{
+		collide = false;
+	}
 		}
 	}
 	return collide;
