@@ -552,17 +552,32 @@ void movement(Player& player) {
 		animation(player);
 	}
 }
-bool checkcollide(Player& player, RectangleShape blocks[],int levelblocks ) {
+bool checkcollide(Player& player, RectangleShape blocks[], int levelblocks ) {
 	bool collide = false;
 	for (int i = 0; i < levelblocks; i++) {
-		if (player.sprite.getGlobalBounds().intersects(blocks[i].getGlobalBounds())) {
-	if (player.sprite.getGlobalBounds().top < blocks[i].getGlobalBounds().top) {
-		collide = true;
-	}
-	else if (player.sprite.getGlobalBounds().top+player.sprite.getGlobalBounds().height<blocks[i].getGlobalBounds().top+ blocks[i].getGlobalBounds().height)
-	{
-		collide = false;
-	}
+		FloatRect playerBounds = player1.sprite.getGlobalBounds();
+		FloatRect blockBounds = blocks[i].getGlobalBounds();
+		if (playerBounds.intersects(blockBounds)) {
+			if ((playerBounds.left >= blockBounds.left + blockBounds.width - 5))
+			{
+				player1.sprite.setPosition(blockBounds.left + blockBounds.width + playerBounds.width / 2, player1.sprite.getPosition().y);
+			}
+			else if ((playerBounds.left + playerBounds.width <= blockBounds.left + 5))
+			{
+				player1.sprite.setPosition(blockBounds.left - playerBounds.width / 2, player1.sprite.getPosition().y);
+			}
+			else
+			{
+				if (playerBounds.top + playerBounds.height >= blockBounds.top)
+				{
+					collide = true;
+				}
+				else if (playerBounds.top <= blockBounds.top + blockBounds.height)
+				{
+					collide = false;
+					player1.sprite.setPosition(player1.sprite.getPosition().x, playerBounds.top + playerBounds.width / 2);
+				}
+			}
 		}
 	}
 	return collide;
