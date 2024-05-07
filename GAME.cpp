@@ -1,17 +1,20 @@
 #include<iostream>
 #include<SFML/Graphics.hpp>
 #include<SFML/Audio.hpp>
+#include<string>
 #include<vector>
 using namespace sf;
 using namespace std;
 
 // levels return values
-const int MAIN_MENU_STATE = 0;
-const int LEVEL_1_STATE = 1;
-const int LEVEL_2_STATE = 2;
-const int LEVEL_3_STATE = 3;
-const int LEVEL_4_STATE = 4;
-const int LEVEL_5_STATE = 5;
+const int MAIN_MENU_STATE = -1;
+const int LEVEL_1_STATE = 0;
+const int LEVEL_2_STATE = 1;
+const int LEVEL_3_STATE = 2;
+const int LEVEL_4_STATE = 3;
+const int LEVEL_5_STATE = 4;
+const int MAPS_MENU_STATE = 6;
+int currentLevel = 0;
 
 const int level1blocks = 2;
 const int level2blocks = 10;
@@ -119,12 +122,16 @@ struct help {
 vector<help>dropbag;
 
 Sprite drops[4]; // 0 pistol , 1 rifle , 2 mini , 3 RPG 
-Texture playerTecture[6], dropsTexture[8];
+Texture playerTecture[6], dropsTexture[8], menuText;
 
-RectangleShape cblocks[2], wblocks[10], dblocks[11], bblocks[6]; //maps blocks
+RectangleShape cblocks[2], wblocks[10], dblocks[11], bblocks[6], menu, maps[4], mapsBack[4]; //maps blocks
 Sprite castleb, castlef, wback, wfore, dground, dfore, bground, bfore;
+Font font;
+string mapNames[4];
+Text names[4];
 
 RectangleShape createRectangle(int length, int width, int xposition, int yposition);
+Sound menuSound;
 
 void createSprite(Sprite& sprite ,Texture& texture, float scalex, float scaley);
 
@@ -166,46 +173,62 @@ void bulletcooldown(Player& player);
 void movebullets(vector<Bullet>& bullets ,Player& player2);
 
 // levels
-int MainMenu(RenderWindow& window);
+int MainMenu(RenderWindow& window, Clock& timer);
+int MapsMenu(RenderWindow& window, Clock& timer);
 int level1(RenderWindow& window, Clock& timeradd, Clock& timerdelete);
 int level2(RenderWindow& window, Clock& timeradd, Clock& timerdelete);
 int level3(RenderWindow& window, Clock& timeradd, Clock& timerdelete);
 int level4(RenderWindow& window, Clock& timeradd, Clock& timerdelete);
 
+const unsigned WIN_WIDTH = 1900;
+const unsigned WIN_HEIGHT = 1100;
 
 int main() {
 
-	RenderWindow window(VideoMode(1900, 1100), "GAME", Style::Default);
+	RenderWindow window(VideoMode(WIN_WIDTH, WIN_HEIGHT), "GAME", Style::Default);
 	window.setFramerateLimit(60);
-	Clock timeradd, timerdelete;
+	Clock timeradd, timerdelete, timer;
+
+	font.loadFromFile("./fonts/font.ttf");
+
+	// Main Menu
+	menuText.loadFromFile("./backgrounds/stickfight.png");
+	menu.setTexture(&menuText);
+	menu.setSize(Vector2f(WIN_WIDTH, WIN_HEIGHT));
 
 	//map  (1)
 	//castle map1
 	Texture castleback;
-	castleback.loadFromFile("castleb.png");
-	createSprite(castleb, castleback, 1.6, 2);
+	castleback.loadFromFile("./backgrounds/castleb.png");
+	mapsBack[0].setTexture(&castleback);
+	createSprite(castleb, castleback, 1, 1);
 	Texture castlefore;
-	castlefore.loadFromFile("castlefore.png");
+	castlefore.loadFromFile("./backgrounds/castlefore.png");
+	maps[0].setTexture(&castlefore);
 	castlef.setTexture(castlefore);
 	castleblocks(cblocks);
 
 	//map (2)
 	//wood 
 	Texture wbackground;
-	wbackground.loadFromFile("wood.png");
-	createSprite(wback, wbackground, 1.67, 1.7);
+	wbackground.loadFromFile("./backgrounds/wood.png");
+	mapsBack[1].setTexture(&wbackground);
+	createSprite(wback, wbackground, 1.1, 1.1);
 	Texture wforeground;
-	wforeground.loadFromFile("woods.png");
-	createSprite(wfore , wforeground, 0.84, 0.8);
+	wforeground.loadFromFile("./backgrounds/woods.png");
+	maps[1].setTexture(&wforeground);
+	createSprite(wfore , wforeground, 0.46, 0.5);
 	woodblocks(wblocks);
 
    //map  (3)
    //desert 
 	Texture dback;
-	dback.loadFromFile("desertb.png");
+	dback.loadFromFile("./backgrounds/desertb.png");
+	mapsBack[2].setTexture(&dback);
 	createSprite(dground, dback, 1.5, 1.6);
 	Texture desertfore;
-	desertfore.loadFromFile("desertf.png");
+	desertfore.loadFromFile("./backgrounds/desertf.png");
+	maps[2].setTexture(&desertfore);
 	createSprite(dfore, desertfore, 1.5, 1.55);
 	dfore.setPosition(Vector2f(0, 0));
 	woodblocks(dblocks);
@@ -216,31 +239,22 @@ int main() {
 	//map (4)
 	 //ball 
 	Texture bback;
-	bback.loadFromFile("ballback.png");
+	bback.loadFromFile("./backgrounds/ballback.png");
+	mapsBack[3].setTexture(&bback);
 	createSprite(bground, bback, 1.5, 1.5);
 	Texture ball;
-	ball.loadFromFile("ballfore.png");
+	ball.loadFromFile("./backgrounds/ballfore.png");
+	maps[3].setTexture(&ball);
 	createSprite(bfore,ball, 1.5, 1);
 	bfore.setPosition(Vector2f(0, 330));
 	ballblocks(bblocks);
 
+	mapNames[0] = "\"Woods\"";
+	mapNames[1] = "\"Castle\"";
+	mapNames[2] = "\"Factory\"";
+	mapNames[3] = "\"Easter\"";
 
 	playerproperties();
-	/*
-	player1.sprite.setPosition(100, 100);
-	player1.sprite.setScale(1, 1);
-	player1.sprite.setOrigin(125.375 / 2.00, 124.5 / 2.00);
-	player1.sprite.setTexture(playerTecture[player1.playertecture]);
-	player1.sprite.setTextureRect(IntRect(player1.spritelength / 9.00, 0, player1.spritelength / 9.00, player1.spriteheight));
-	player1.playernumber = 1;
-
-	player2.sprite.setPosition(1500, 100);
-	player2.sprite.setScale(-1, 1);
-	player2.sprite.setOrigin(125.375 / 2.00, 124.5 / 2.00);
-	player2.sprite.setTexture(playerTecture[player1.playertecture]);
-	player2.sprite.setTextureRect(IntRect(player1.spritelength / 9.00, 0, player1.spritelength / 9.00, player1.spriteheight));
-	player2.playernumber = 2;
-	*/
 
 	// crown
 	Texture crown;
@@ -252,9 +266,14 @@ int main() {
 	setplayertecture();
 	setdrops();
 
-	cout << "Health1" << " " << "Health2" << endl;
-
-	int currentState = 0;
+	// Sound Effects
+	SoundBuffer menuBuffer;
+	menuBuffer.loadFromFile("./sounds/battle-of-the-dragons-8037 (online-audio-converter.com).ogg");
+	menuSound.setBuffer(menuBuffer);
+	menuSound.play();
+	
+	// cout << "Health1" << " " << "Health2" << endl;
+	int currentState = -1;
 
 	while (window.isOpen()) {
 		Event evnt;
@@ -263,157 +282,37 @@ int main() {
 				window.close();
 			}
 		}
+		if (Mouse::isButtonPressed(Mouse::Left))
+		{
+			Vector2i mousePos = Mouse::getPosition(window);
+			cout << mousePos.x << " " << mousePos.y << "\n";
+		}
+
 		switch (currentState) {
 		case MAIN_MENU_STATE:
-			currentState = MainMenu(window);
+			currentState = MainMenu(window, timer);
+			// menuSound.play();
+			break;
+		case MAPS_MENU_STATE:
+			currentState = MapsMenu(window, timer);
 			break;
 		case LEVEL_1_STATE:
 			currentState = level1(window, timeradd, timeradd);
+			menuSound.pause();
 			break;
 		case LEVEL_2_STATE:
 			currentState = level2(window, timeradd, timeradd);
+			menuSound.pause();
 			break;
 		case LEVEL_3_STATE:
 			currentState = level3(window, timeradd, timeradd);
+			menuSound.pause();
 			break;
 		case LEVEL_4_STATE:
 			currentState = level4(window, timeradd, timeradd);
+			menuSound.pause();
 			break;
 		}
-		//level2(window, timeradd, timeradd);
-		/*	winner(player1, winnercrown);
-
-			choosedrop(grounds, timeradd, timerdelete);
-			dropfalling();
-			dropcollision(player1);
-			cheakdrop(player1);
-
-			dropcollision(player2);
-			cheakdrop(player2);
-
-			//delay++;
-
-			if (player1.playertecture != 4) {
-				player1.isWeaponed = true;
-			}
-			if (player2.playertecture != 4) {
-				player2.isWeaponed = true;
-			}
-
-			if (player1.jumped==false) {
-				player1.sprite.setTexture(playerTecture[player1.playertecture]);
-				player1.sprite.setTextureRect(IntRect(0, 0, player1.spritelength / 9.00, player1.spriteheight/2 ));
-			}
-
-
-			if (player2.jumped == false) {
-				player2.sprite.setTexture(playerTecture[player2.playertecture]);
-				player2.sprite.setTextureRect(IntRect(0, 0, player2.spritelength / 9.00, player2.spriteheight/2 ));
-			}
-
-			if (Keyboard::isKeyPressed(Keyboard::Right) && player1.sprite.getPosition().x < 1000) {
-				player1.last_key_pressed = 1;
-				movement(player1);
-			}
-
-			if (Keyboard::isKeyPressed(Keyboard::Left) && player1.sprite.getPosition().x > 0) {
-				player1.last_key_pressed = -1;
-				movement(player1);
-				}
-
-			if (player1.index>=0 && Keyboard::isKeyPressed(Keyboard::Space) && player1.canshoot) {
-				shooting(player1);
-			}
-
-			bulletcooldown(player1);
-			movebullets(player1.bullets,player2);
-
-			jumping(player1, grounds);
-
-			if (Keyboard::isKeyPressed(Keyboard::D) && player2.sprite.getPosition().x < 1000) {
-				player2.last_key_pressed = 1;
-				movement(player2);
-			}
-
-			if (Keyboard::isKeyPressed(Keyboard::A) && player2.sprite.getPosition().x > 0) {
-				player2.last_key_pressed = -1;
-				movement(player2);
-			}
-
-			if (player2.index >= 0 && Keyboard::isKeyPressed(Keyboard::F) && player2.canshoot) {
-				shooting(player2);
-				cout << player1.health << " " << player2.health << endl;
-			}
-
-			bulletcooldown(player2);
-			movebullets(player2.bullets,player1);
-
-			jumping(player2, grounds);
-
-			//cout << player1.bullets.size() << " " << player1.index<< endl;
-
-			// jumping
-			/*
-			if (player1.sprite.getGlobalBounds().intersects(grounds[0].getGlobalBounds()) ||
-				player1.sprite.getGlobalBounds().intersects(grounds[1].getGlobalBounds()) ||
-				player1.sprite.getGlobalBounds().intersects(grounds[2].getGlobalBounds())) {
-				v = 0;
-				a = 0;
-				if (ctrj == 7) {
-					ctrj = 0;
-				}
-				if (Keyboard::isKeyPressed(Keyboard::Up)) {
-					v = 6;
-					if (player1.isWeaponed == false) {
-						player1.jumped = true;
-					}
-					else {
-						player1.jumped = false;
-					}
-				}
-			}
-			else {
-				v -= 0.01 * a;
-				a++;
-			}
-			player1.sprite.move(0, -v);
-			if (delay % 7 == 0) {
-				if (player1.jumped==true) {
-					player1.sprite.setTexture(jump);
-					player1.sprite.setTextureRect(IntRect(ctrj * 1024 / 8.00, 0, 128, 128));
-					ctrj++;
-					if (ctrj == 7) {
-						player1.jumped = false;
-					}
-				}
-			}
-
-
-			window.clear();
-
-			window.draw(background);
-
-			for (int i = 0; i < 3; i++) {
-				window.draw(grounds[i]);
-			}
-
-			window.draw(player1.sprite);
-			window.draw(player2.sprite);
-			window.draw(winnercrown);
-
-			for (int i = 0; i < dropbag.size(); i++) {
-				window.draw(dropbag[i].droptype);
-			}
-			for (int i = 0; i < player1.bullets.size(); i++) {
-					window.draw(player1.bullets[i].bulletsprite);
-			}
-			for (int i = 0; i < player2.bullets.size(); i++) {
-				window.draw(player2.bullets[i].bulletsprite);
-			}
-
-			window.display();
-
-			*/
 	}
 		return 0;
 }
@@ -504,11 +403,10 @@ void ballblocks(RectangleShape bblocks[]) {
 	//ball block5
 	bblocks[5] = createRectangle(420, 150, 0, 890);
 };
-
 // player
 void playerproperties() {
 	player1.sprite.setPosition(100, 100);
-	player1.sprite.setScale(1, 1);
+	player1.sprite.setScale(0.7, 0.7);
 	player1.sprite.setOrigin(125.375 / 2.00, 124.5 / 2.00);
 	player1.sprite.setTexture(playerTecture[player1.playertecture]);
 	player1.sprite.setTextureRect(IntRect(player1.spritelength / 9.00, 0, player1.spritelength / 9.00, player1.spriteheight));
@@ -524,12 +422,12 @@ void playerproperties() {
 	player2.last_key_pressed = -1;
 }
 void setplayertecture() {
-	playerTecture[0].loadFromFile("pistol.png");
-	playerTecture[1].loadFromFile("AK.png");
-	playerTecture[2].loadFromFile("MiniGun.png");
-	playerTecture[3].loadFromFile("RPG.png");
-	playerTecture[4].loadFromFile("walking.png");
-	playerTecture[5].loadFromFile("jump.png");
+	playerTecture[0].loadFromFile("./sprites/pistol.png");
+	playerTecture[1].loadFromFile("./sprites/AK.png");
+	playerTecture[2].loadFromFile("./sprites/MiniGun.png");
+	playerTecture[3].loadFromFile("./sprites/RPG.png");
+	playerTecture[4].loadFromFile("./sprites/walking.png");
+	playerTecture[5].loadFromFile("./sprites/jump.png");
 }
 void animation(Player& player) {
 	float time = player.clock.getElapsedTime().asMicroseconds();
@@ -568,12 +466,13 @@ bool checkcollide(Player& player, RectangleShape blocks[],int levelblocks ) {
 			}
 			else
 			{
-				if (playerBounds.top + playerBounds.height <= blockBounds.top + 15)
+				if (playerBounds.top + playerBounds.height <= blockBounds.top + 20)
 				{
 					collide = true;
 				}
-				else if (playerBounds.top >= blockBounds.top + blockBounds.height - 15)
+				else if (playerBounds.top >= blockBounds.top + blockBounds.height - 20)
 				{
+					// collide = false;
 					player1.sprite.setPosition(player1.sprite.getPosition().x, blockBounds.top + blockBounds.height + playerBounds.height / 2);
 				}
 			}
@@ -610,7 +509,6 @@ void jumping(Player& player, RectangleShape blocks[], int levelblocks) {
 		}
 		else if (player.playernumber == 2) {
 			if (Keyboard::isKeyPressed(Keyboard::W)) {
-
 				player.velocity = 6;
 				if (player.isWeaponed == false) {
 					player.jumped = true;
@@ -683,11 +581,11 @@ void winner(Player& player, Sprite& winnercrown) {
 
 // drops(weapons)
 void setdrops() {
-	dropsTexture[0].loadFromFile("pistolW.png");
-	dropsTexture[1].loadFromFile("AKW.png");
-	dropsTexture[2].loadFromFile("MiniW.png");
-	dropsTexture[3].loadFromFile("RPGW.png");
-	dropsTexture[4].loadFromFile("pistol bullet.png");
+	dropsTexture[0].loadFromFile("./sprites/pistolW.png");
+	dropsTexture[1].loadFromFile("./sprites/AKW.png");
+	dropsTexture[2].loadFromFile("./sprites/MiniW.png");
+	dropsTexture[3].loadFromFile("./sprites/RPGW.png");
+	dropsTexture[4].loadFromFile("./sprites/pistol bullet.png");
 	for (int i = 0; i < 4; i++) {
 		drops[i].setTexture(dropsTexture[i]);
 	}
@@ -727,7 +625,7 @@ void dropcollision(Player& player) {
 				player.bullets.clear();
 				player.index -= player.currentmagazine;
 			}
-			player.droptype=dropbag[i].type;
+			player.droptype = dropbag[i].type;
 			dropbag.erase(dropbag.begin() + i);
 		}
 	}
@@ -857,27 +755,123 @@ void movebullets(vector<Bullet>& bullets ,Player& player2) {
 	}
 }
 
-int MainMenu(RenderWindow& window) {
+int MainMenu(RenderWindow& window, Clock& timer) {
+	Font font;
+	font.loadFromFile("fonts/font.ttf");
+    Text playButton;
+    Text mapsButton;
+    Text exitButton;
+    static int selectedOption = 0;
+
+	playButton.setString("Play");
+	playButton.setFont(font);
+	playButton.setCharacterSize(50);
+	playButton.setPosition(250, 250);
+	playButton.setFillColor(sf::Color::White);
+
+	mapsButton.setString("Maps");
+	mapsButton.setFont(font);
+	mapsButton.setCharacterSize(50);
+	mapsButton.setPosition(250, 350);
+	mapsButton.setFillColor(sf::Color::White);
+
+	exitButton.setString("Exit");
+	exitButton.setFont(font);
+	exitButton.setCharacterSize(50);
+	exitButton.setPosition(250, 450);
+	exitButton.setFillColor(sf::Color::White);
+
+	float time = timer.getElapsedTime().asSeconds();
+	if (Keyboard::isKeyPressed(Keyboard::Up) && !(0.2 >= time)) {
+		timer.restart();
+		selectedOption = (selectedOption - 1 + 3) % 3;
+	}
+	else if (Keyboard::isKeyPressed(Keyboard::Down) && !(0.2 >= time))
+	{
+		timer.restart();
+		selectedOption = (selectedOption + 1) % 3;
+	}
+
+	if (selectedOption == 0) {
+		playButton.setFillColor(sf::Color::Red);
+	} else if (selectedOption == 1) {
+		mapsButton.setFillColor(sf::Color::Red);
+	} else {
+		exitButton.setFillColor(sf::Color::Red);
+	}
+
 	window.clear();
-	// Draw your main menu here
+	window.draw(menu);
+	window.draw(playButton);
+	window.draw(mapsButton);
+	window.draw(exitButton);
 	window.display();
 
 	// Example transition conditions
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
-		return LEVEL_1_STATE;
-	}
-	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
-		return LEVEL_2_STATE;
-	}
-	else if (sf::Keyboard::isKeyPressed(Keyboard::Num3)) {
-		return LEVEL_3_STATE;
-	}
-	else if (sf::Keyboard::isKeyPressed(Keyboard::Num4)) {
-		return LEVEL_4_STATE;
+	if (Keyboard::isKeyPressed(Keyboard::Enter) && !(0.2 >= time)) {
+		if (selectedOption == 0) {
+			// Handle play button press
+			timer.restart();
+			return currentLevel;
+		} else if (selectedOption == 1) {
+			// Handle maps button press
+			timer.restart();
+			return MAPS_MENU_STATE;
+		} else {
+			// Handle exit button press
+			window.close();
+		}
 	}
 
 	// Return MainMenu state by default
 	return MAIN_MENU_STATE;
+}
+int MapsMenu(RenderWindow& window, Clock& timer)
+{
+	Font font;
+	font.loadFromFile("fonts/font.ttf");
+	for (int i = 0; i < 4; i++)
+	{
+		maps[i].setSize(Vector2f(500, 400));
+		maps[i].setPosition(Vector2f((WIN_WIDTH - 500) / 2.0, (WIN_HEIGHT - 400) / 2.0));
+		mapsBack[i].setSize(Vector2f(500, 400));
+		mapsBack[i].setPosition(Vector2f((WIN_WIDTH - 500) / 2.0, (WIN_HEIGHT - 400) / 2.0));
+		maps[i].setOutlineColor(Color::White);
+		maps[i].setOutlineThickness(7);
+		names[i].setString(mapNames[i]);
+		names[i].setFont(font);
+		names[i].setFillColor(Color::White);
+		names[i].setCharacterSize(50);
+		names[i].setPosition((WIN_WIDTH - 500) / 2.0 + 80, 570);
+	}
+	window.clear();
+	window.draw(menu);
+	window.draw(mapsBack[currentLevel]);
+	window.draw(maps[currentLevel]);
+	window.draw(names[currentLevel]);
+	window.display();
+
+	float time = timer.getElapsedTime().asSeconds();
+	if (Keyboard::isKeyPressed(Keyboard::Escape))
+	{
+		return MAIN_MENU_STATE;
+	}
+	else if (Keyboard::isKeyPressed(Keyboard::Right) && !(0.2 >= time))
+	{
+		timer.restart();
+		currentLevel = (currentLevel + 1) % 4;
+	}
+	else if (Keyboard::isKeyPressed(Keyboard::Left) && !(0.2 >= time))
+	{
+		timer.restart();
+		currentLevel = (currentLevel - 1 + 4) % 4;
+	}
+	else if (Keyboard::isKeyPressed(Keyboard::Enter) && !(0.2 >= time))
+	{
+		timer.restart();
+		return currentLevel;
+	}
+	return MAPS_MENU_STATE;
 }
 int level1(RenderWindow& window, Clock& timeradd, Clock& timerdelete) {
 	choosedrop(cblocks, timeradd, timerdelete, level1blocks);
@@ -946,48 +940,10 @@ int level1(RenderWindow& window, Clock& timeradd, Clock& timerdelete) {
 
 	jumping(player2, cblocks,level1blocks);
 
-	//cout << player1.bullets.size() << " " << player1.index<< endl;
-
-	// jumping
-	/*
-	if (player1.sprite.getGlobalBounds().intersects(grounds[0].getGlobalBounds()) ||
-		player1.sprite.getGlobalBounds().intersects(grounds[1].getGlobalBounds()) ||
-		player1.sprite.getGlobalBounds().intersects(grounds[2].getGlobalBounds())) {
-		v = 0;
-		a = 0;
-		if (ctrj == 7) {
-			ctrj = 0;
-		}
-		if (Keyboard::isKeyPressed(Keyboard::Up)) {
-			v = 6;
-			if (player1.isWeaponed == false) {
-				player1.jumped = true;
-			}
-			else {
-				player1.jumped = false;
-			}
-		}
-	}
-	else {
-		v -= 0.01 * a;
-		a++;
-	}
-	player1.sprite.move(0, -v);
-	if (delay % 7 == 0) {
-		if (player1.jumped==true) {
-			player1.sprite.setTexture(jump);
-			player1.sprite.setTextureRect(IntRect(ctrj * 1024 / 8.00, 0, 128, 128));
-			ctrj++;
-			if (ctrj == 7) {
-				player1.jumped = false;
-			}
-		}
-	}
-	*/
-
 	window.clear();
 
 	window.draw(castleb);
+	window.draw(castlef);
 	for (int i = 0; i < 2; i++) {
 		window.draw(cblocks[i]);
 	}
@@ -1006,7 +962,6 @@ int level1(RenderWindow& window, Clock& timeradd, Clock& timerdelete) {
 		window.draw(player2.bullets[i].bulletsprite);
 	}
 
-	window.draw(castlef);
 
 	window.display();
 
@@ -1084,48 +1039,10 @@ int level2(RenderWindow& window, Clock& timeradd, Clock& timerdelete) {
 
 	jumping(player2, wblocks,level2blocks);
 
-	//cout << player1.bullets.size() << " " << player1.index<< endl;
-
-	// jumping
-	/*
-	if (player1.sprite.getGlobalBounds().intersects(grounds[0].getGlobalBounds()) ||
-		player1.sprite.getGlobalBounds().intersects(grounds[1].getGlobalBounds()) ||
-		player1.sprite.getGlobalBounds().intersects(grounds[2].getGlobalBounds())) {
-		v = 0;
-		a = 0;
-		if (ctrj == 7) {
-			ctrj = 0;
-		}
-		if (Keyboard::isKeyPressed(Keyboard::Up)) {
-			v = 6;
-			if (player1.isWeaponed == false) {
-				player1.jumped = true;
-			}
-			else {
-				player1.jumped = false;
-			}
-		}
-	}
-	else {
-		v -= 0.01 * a;
-		a++;
-	}
-	player1.sprite.move(0, -v);
-	if (delay % 7 == 0) {
-		if (player1.jumped==true) {
-			player1.sprite.setTexture(jump);
-			player1.sprite.setTextureRect(IntRect(ctrj * 1024 / 8.00, 0, 128, 128));
-			ctrj++;
-			if (ctrj == 7) {
-				player1.jumped = false;
-			}
-		}
-	}
-	*/
-
 	window.clear();
 
 	window.draw(wback);
+	window.draw(wfore);
 	for (int i = 0; i < 10; i++) {
 		window.draw(wblocks[i]);
 	}
@@ -1143,8 +1060,6 @@ int level2(RenderWindow& window, Clock& timeradd, Clock& timerdelete) {
 	for (int i = 0; i < player2.bullets.size(); i++) {
 		window.draw(player2.bullets[i].bulletsprite);
 	}
-
-	window.draw(wfore);
 
 	window.display();
 
