@@ -144,25 +144,25 @@ int main() {
 	window.setFramerateLimit(60);
 	Clock timeradd, timerdelete, timer;
 
-	font.loadFromFile("impact.ttf");
+	font.loadFromFile("./fonts/font.ttf");
 	for (int i = 0; i < 5; i++) {
 		fight[i].setFont(font);
 	}
 	setfontfight(font);
 
 	// Main Menu
-	menuText.loadFromFile("stickfight.png");
+	menuText.loadFromFile("./backgrounds/stickfight.png");
 	menu.setTexture(&menuText);
 	menu.setSize(Vector2f(WIN_WIDTH, WIN_HEIGHT));
 
 	//map  (1)
 	//castle map1
 	Texture castleback;
-	castleback.loadFromFile("castleb.png");
+	castleback.loadFromFile("./backgrounds/castleb.png");
 	mapsBack[0].setTexture(&castleback);
 	createSprite(castleb, castleback, 1.6, 2);
 	Texture castlefore;
-	castlefore.loadFromFile("castlefore.png");
+	castlefore.loadFromFile("./backgrounds/castlefore.png");
 	maps[0].setTexture(&castlefore);
 	castlef.setTexture(castlefore);
 	castleblocks(cblocks);
@@ -170,11 +170,11 @@ int main() {
 	//map (2)
 	//wood 
 	Texture wbackground;
-	wbackground.loadFromFile("wood.png");
+	wbackground.loadFromFile("./backgrounds/wood.png");
 	mapsBack[1].setTexture(&wbackground);
 	createSprite(wback, wbackground, 1.67, 1.7);
 	Texture wforeground;
-	wforeground.loadFromFile("woods.png");
+	wforeground.loadFromFile("./backgrounds/woods.png");
 	maps[1].setTexture(&wforeground);
 	createSprite(wfore, wforeground, 0.84, 0.8);
 	woodblocks(wblocks);
@@ -182,11 +182,11 @@ int main() {
 	//map  (3)
 	//desert 
 	Texture dback;
-	dback.loadFromFile("desertb.png");
+	dback.loadFromFile("./backgrounds/desertb.png");
 	mapsBack[2].setTexture(&dback);
 	createSprite(dground, dback, 1.5, 1.6);
 	Texture desertfore;
-	desertfore.loadFromFile("desertf.png");
+	desertfore.loadFromFile("./backgrounds/desertf.png");
 	maps[2].setTexture(&desertfore);
 	createSprite(dfore, desertfore, 1.5, 1.55);
 	dfore.setPosition(Vector2f(0, 0));
@@ -199,11 +199,11 @@ int main() {
 	//map (4)
 	 //ball 
 	Texture bback;
-	bback.loadFromFile("ballback.png");
+	bback.loadFromFile("./backgrounds/ballback.png");
 	mapsBack[3].setTexture(&bback);
 	createSprite(bground, bback, 1.5, 1.5);
 	Texture ball;
-	ball.loadFromFile("ballfore.png");
+	ball.loadFromFile("./backgrounds/ballfore.png");
 	maps[3].setTexture(&ball);
 	createSprite(bfore, ball, 1.5, 1);
 	bfore.setPosition(Vector2f(0, 330));
@@ -273,6 +273,45 @@ int main() {
 		}
 	}
 	return 0;
+}
+
+// Health bar 
+void healthBar(RenderWindow& window)
+{
+	// Create a rectangle for the background of the health bar
+    sf::RectangleShape background1(sf::Vector2f(510, 60));
+    background1.setFillColor(sf::Color::White); // Gray color
+    background1.setPosition(50, 50);
+    // Create a rectangle for the actual health
+    sf::RectangleShape health1(sf::Vector2f(player1.health / 2.0, 50));
+	cout << player1.health << "\n";
+    health1.setPosition(55, 55);
+	if (player1.health <= 200) {
+		health1.setFillColor(sf::Color::Red);
+	} else if (player1.health <= 600) {
+		health1.setFillColor(sf::Color::Yellow);
+	} else {
+		health1.setFillColor(sf::Color::Green);
+	}
+
+    sf::RectangleShape background2(sf::Vector2f(510, 60));
+    background2.setFillColor(sf::Color::White); // Gray color
+    background2.setPosition(WIN_WIDTH - 510, 50);
+
+    sf::RectangleShape health2(sf::Vector2f(player2.health / 2.0, 50));
+    health2.setPosition(WIN_WIDTH - 500, 55);
+	if (player2.health <= 200) {
+		health2.setFillColor(sf::Color::Red);
+	} else if (player2.health <= 600) {
+		health2.setFillColor(sf::Color::Yellow);
+	} else {
+		health2.setFillColor(sf::Color::Green);
+	}
+
+	window.draw(background1);
+	window.draw(health1);
+	window.draw(background2);
+	window.draw(health2);
 }
 
 //font
@@ -786,8 +825,6 @@ void movebullets(vector<Bullet>& bullets, Player& player2) {
 }
 
 int MainMenu(RenderWindow& window, Clock& timer,Clock& clock) {
-	Font font;
-	font.loadFromFile("impact.ttf");
 	Text playButton;
 	Text mapsButton;
 	Text exitButton;
@@ -865,8 +902,6 @@ int MainMenu(RenderWindow& window, Clock& timer,Clock& clock) {
 }
 int MapsMenu(RenderWindow& window, Clock& timer)
 {
-	Font font;
-	font.loadFromFile("impact.ttf");
 	for (int i = 0; i < 4; i++)
 	{
 		maps[i].setSize(Vector2f(500, 400));
@@ -989,6 +1024,7 @@ int level1(RenderWindow& window, Clock& timeradd, Clock& timerdelete,Clock& cloc
 	if (canfight) {
 		window.draw(player1.sprite);
 		window.draw(player2.sprite);
+		healthBar(window);
 	}
 
 	for (int i = 0; i < dropbag.size(); i++) {
@@ -1002,7 +1038,7 @@ int level1(RenderWindow& window, Clock& timeradd, Clock& timerdelete,Clock& cloc
 	}
 
 	if(!canfight)
-	displayfontfight(window,clock);
+	displayfontfight(window, clock);
 
 	window.display();
 
@@ -1125,6 +1161,7 @@ int level2(RenderWindow& window, Clock& timeradd, Clock& timerdelete,Clock& cloc
 	if (canfight) {
 		window.draw(player1.sprite);
 		window.draw(player2.sprite);
+		healthBar(window);
 	}
 
 	if (play&&canfight) {
@@ -1264,6 +1301,7 @@ int level3(RenderWindow& window, Clock& timeradd, Clock& timerdelete,Clock& cloc
 	if (canfight) {
 		window.draw(player1.sprite);
 		window.draw(player2.sprite);
+		healthBar(window);
 	}
 
 	if (play&&canfight) {
@@ -1406,6 +1444,7 @@ int level4(RenderWindow& window, Clock& timeradd, Clock& timerdelete,Clock& cloc
 	if (canfight) {
 		window.draw(player1.sprite);
 		window.draw(player2.sprite);
+		healthBar(window);
 	}
 
 	if (play&&canfight) {
